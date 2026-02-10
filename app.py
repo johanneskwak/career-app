@@ -14,7 +14,7 @@ sheet_gids = {
 }
 
 # 데이터 불러오기 함수
-@st.cache_data
+@st.cache_data(ttl=60)
 def load_data(sheet_name):
     gid = sheet_gids[sheet_name]
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
