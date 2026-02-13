@@ -13,354 +13,341 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# UI/UX 스타일링 (카드 디자인, 태그 등)
 st.markdown("""
 <style>
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: #f8f9fa;
-        border-radius: 5px 5px 0px 0px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        font-weight: 600;
+    /* 메인 컨테이너 스타일 */
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1E3A8A;
+        margin-bottom: 1rem;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #ffffff;
-        border-top: 3px solid #4285f4;
-        color: #4285f4;
+    .sub-header {
+        font-size: 1.2rem;
+        color: #64748B;
+        margin-bottom: 2rem;
     }
+    /* 정보 박스 스타일 */
     .info-box {
-        background-color: #f1f3f4;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #4285f4;
-        margin-bottom: 10px;
+        background-color: #F8FAFC;
+        padding: 20px;
+        border-radius: 12px;
+        border-left: 5px solid #3B82F6;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         height: 100%;
     }
-    .subject-tag {
-        display: inline-block;
-        background-color: #e8f0fe;
-        color: #1967d2;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.85em;
-        margin: 2px;
-        border: 1px solid #d2e3fc;
+    .info-title {
+        font-weight: 700;
+        color: #1E40AF;
+        margin-bottom: 10px;
+        display: block;
     }
-    .career-tag {
+    /* 과목 태그 스타일 */
+    .tag-base {
         display: inline-block;
-        background-color: #fce8e6;
-        color: #c5221f;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.85em;
-        margin: 2px;
-        border: 1px solid #fad2cf;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin: 3px;
+    }
+    .tag-gen {
+        background-color: #DBEAFE;
+        color: #1E40AF;
+        border: 1px solid #BFDBFE;
+    }
+    .tag-career {
+        background-color: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+    }
+    /* 단계 표시 스타일 */
+    .step-indicator {
+        padding: 10px 20px;
+        background-color: #EFF6FF;
+        border-radius: 30px;
+        color: #1D4ED8;
+        font-weight: bold;
+        margin-bottom: 20px;
+        display: inline-block;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 데이터 센터 (30개 이상의 직업 데이터)
+# 2. 데이터 센터 (직업 스탯 + 상세 가이드)
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_data():
-    # 1. 직업 스탯 데이터 (일부 예시만 포함, 실제로는 더 많음)
+    # 1. 직업 정량 데이터 (홀란드 코드 + 5대 가치관 점수)
+    # 실제로는 100개 이상의 직업이 들어갈 수 있습니다.
     df = pd.DataFrame({
         '직업군': [
-            '소프트웨어 개발자', '데이터 사이언티스트', '정보보안 전문가', 'AI 연구원',
-            '의사 (전문의)', '약사', '간호사', '수의사', '치과의사',
-            '경영 컨설턴트', '공인회계사(CPA)', '투자은행가(IB)', '마케팅 전문가', '관세사',
+            '소프트웨어 개발자', '데이터 사이언티스트', '정보보안 전문가', 'AI 연구원', '반도체 엔지니어',
+            '의사 (전문의)', '약사', '간호사', '수의사', '치과의사', '물리치료사',
+            '경영 컨설턴트', '공인회계사(CPA)', '투자은행가(IB)', '마케팅 전문가', '관세사', '감정평가사',
             '변호사 (로스쿨)', '판사/검사', '변리사', '노무사', '경찰공무원',
-            '5급 행정고시', '7/9급 공무원', '외교관', '중등 교사', '대학교수',
-            '반도체 엔지니어', '기계공학 엔지니어', '화학공학 엔지니어', '건축가', '항공기 조종사',
-            '방송 PD', '기자', '웹툰 작가', '큐레이터'
+            '5급 행정고시', '7/9급 공무원', '외교관', '중등 교사', '대학교수', '국책연구원',
+            '건축가', '도시계획가', '항공기 조종사', '승무원',
+            '방송 PD', '기자', '웹툰 작가', '큐레이터', '게임 기획자', 'UX/UI 디자이너'
         ],
-        # 임의의 데이터 (실제 데이터와 유사하게 설정)
-        'Money': [40, 50, 45, 50, 60, 45, 35, 45, 55, 55, 50, 60, 35, 40, 55, 50, 55, 40, 30, 35, 25, 40, 30, 40, 50, 45, 50, 40, 55, 35, 30, 40, 25],
-        'WLB':   [25, 25, 20, 20, 10, 35, 15, 25, 25, 5, 10, 5, 25, 30, 5, 10, 15, 30, 15, 15, 35, 15, 35, 35, 15, 20, 15, 10, 20, 5, 5, 20, 30],
-        'Culture':[35, 30, 25, 25, 10, 15, 10, 15, 15, 10, 15, 5, 40, 15, 10, 5, 15, 20, 5, 10, 10, 15, 15, 20, 15, 10, 10, 20, 10, 30, 20, 40, 25],
-        'Location':[15, 15, 15, 10, 20, 20, 25, 20, 20, 25, 25, 25, 20, 20, 25, 10, 20, 20, 10, 30, 15, 10, 15, 10, 10, 10, 10, 20, 10, 25, 20, 10, 20],
-        'Stability':[20, 25, 30, 25, 60, 50, 40, 50, 55, 15, 40, 10, 15, 40, 30, 50, 45, 35, 50, 55, 60, 50, 55, 50, 30, 35, 35, 20, 40, 20, 25, 10, 20]
+        'Holland_Code': [
+            'IR', 'IC', 'IC', 'IR', 'RI',
+            'IS', 'SC', 'SI', 'IR', 'IR', 'SR',
+            'EC', 'CE', 'EC', 'AE', 'CE', 'CE',
+            'EI', 'EI', 'IE', 'ES', 'SE',
+            'ES', 'CS', 'SA', 'SA', 'IA', 'IR',
+            'AR', 'IE', 'RI', 'SE',
+            'AE', 'EI', 'AI', 'AE', 'AI', 'AE'
+        ],
+        'Money': [45, 50, 45, 50, 50, 60, 45, 35, 45, 55, 35, 55, 50, 60, 35, 40, 50, 55, 50, 55, 40, 30, 35, 25, 40, 30, 40, 35, 40, 35, 55, 30, 35, 30, 40, 25, 35, 35],
+        'WLB':   [25, 25, 20, 20, 15, 10, 35, 15, 25, 25, 30, 5, 10, 5, 25, 30, 25, 5, 10, 15, 30, 15, 15, 35, 15, 35, 35, 35, 15, 25, 20, 20, 5, 5, 20, 30, 20, 25],
+        'Culture':[35, 30, 25, 25, 15, 10, 15, 10, 15, 15, 20, 10, 15, 5, 40, 15, 15, 10, 5, 15, 20, 5, 10, 10, 15, 15, 20, 20, 25, 20, 10, 20, 30, 20, 40, 25, 40, 40],
+        'Location':[15, 15, 15, 10, 10, 20, 20, 25, 20, 20, 20, 25, 25, 25, 20, 20, 15, 25, 10, 20, 20, 10, 30, 15, 10, 15, 10, 10, 20, 15, 10, 30, 25, 20, 10, 20, 15, 15],
+        'Stability':[20, 25, 30, 25, 30, 60, 50, 40, 50, 55, 45, 15, 40, 10, 15, 40, 40, 30, 50, 45, 35, 50, 55, 60, 50, 55, 50, 50, 20, 30, 40, 20, 20, 25, 10, 20, 15, 20]
     })
     
-    # 2. 상세 가이드 (고교학점제 과목 + 로드맵)
-    career_guide = {
-        # -------------------- [IT / 공학 계열] --------------------
-        "소프트웨어 개발자": {
-            "majors": ["컴퓨터공학과", "소프트웨어학과", "정보보호학과", "인공지능학과"],
-            "hs_general": ["수학I/II", "미적분", "확률과 통계", "물리학I", "정보"],
-            "hs_career": ["인공지능 수학", "기하", "정보과학"],
-            "roadmap": [
-                {"step": "1️⃣ 학부 및 기본기", "desc": "CS(자료구조, 알고리즘, OS) 기초 다지기\nPython, Java, C++ 중 1개 언어 마스터"},
-                {"step": "2️⃣ 프로젝트 및 협업", "desc": "Git/GitHub 활용한 팀 프로젝트 경험\n해커톤 참여 및 포트폴리오(웹/앱) 제작"},
-                {"step": "3️⃣ 채용 준비", "desc": "코딩테스트(백준/프로그래머스) 준비\n기술 블로그 운영 및 기술 면접 대비"}
-            ]
-        },
-        "데이터 사이언티스트": {
-            "majors": ["통계학과", "데이터사이언스학과", "산업공학과", "수학과"],
-            "hs_general": ["확률과 통계", "미적분", "사회문제 탐구"],
-            "hs_career": ["인공지능 수학", "실용 통계", "수학과제 탐구"],
-            "roadmap": [
-                {"step": "1️⃣ 수학/통계 베이스", "desc": "선형대수학, 확률통계론, 회귀분석 수강\nPython(Pandas, Scikit-learn) 및 SQL 학습"},
-                {"step": "2️⃣ 분석 프로젝트", "desc": "Kaggle, Dacon 등 데이터 분석 대회 참가\n실제 데이터 전처리 및 모델링 경험 축적"},
-                {"step": "3️⃣ 석사 진학(선택)", "desc": "전문성 강화를 위해 대학원 진학 고려\n논문 리딩 및 최신 모델 구현 능력 함양"}
-            ]
-        },
-        "반도체 엔지니어": {
-            "majors": ["전자공학과", "재료공학과", "신소재공학과", "물리학과"],
-            "hs_general": ["물리학I", "화학I", "미적분"],
-            "hs_career": ["물리학II", "화학II", "공학 일반", "고급 물리학"],
-            "roadmap": [
-                {"step": "1️⃣ 전공 심화", "desc": "회로이론, 전자회로, 반도체공학, 물리전자 수강\n학점 관리(GPA)가 대기업 취업에 매우 중요"},
-                {"step": "2️⃣ 직무 경험", "desc": "반도체 공정 실습 교육 이수\n학부 연구생 활동으로 팹(Fab) 경험 쌓기"},
-                {"step": "3️⃣ 대기업 공채", "desc": "삼성전자, SK하이닉스 등 직무적성검사(GSAT 등) 준비\n8대 공정 등 직무 면접 대비"}
-            ]
-        },
-        # -------------------- [의료 / 보건 계열] --------------------
-        "의사 (전문의)": {
-            "majors": ["의예과", "의학과"],
-            "hs_general": ["생명과학I", "화학I", "미적분", "화법과 작문"],
-            "hs_career": ["생명과학II", "화학II", "고급 생명과학", "생활과 과학"],
-            "roadmap": [
-                {"step": "1️⃣ 의대 6년", "desc": "예과 2년 + 본과 4년 (유급 없이 진급 목표)\n의사 국가고시 합격하여 면허 취득"},
-                {"step": "2️⃣ 인턴 (1년)", "desc": "대학병원에서 여러 과를 돌며 수련\n자신의 적성에 맞는 전공 탐색"},
-                {"step": "3️⃣ 레지던트 (3~4년)", "desc": "특정 과(내과, 외과 등) 전문 수련 과정\n전문의 시험 합격 시 '전문의' 자격 획득"}
-            ]
-        },
-        "약사": {
-            "majors": ["약학과 (6년제)"],
-            "hs_general": ["화학I", "생명과학I", "미적분"],
-            "hs_career": ["화학II", "생명과학II", "융합과학 탐구"],
-            "roadmap": [
-                {"step": "1️⃣ 약대 진학", "desc": "PEET 폐지 후, 수시/정시로 통합 6년제 입학\n유기화학, 생화학, 약물학 등 전공 이수"},
-                {"step": "2️⃣ 실무 실습", "desc": "약국, 병원, 제약회사 등에서 필수 실무 실습\n졸업 논문 또는 시험 통과"},
-                {"step": "3️⃣ 약사 면허", "desc": "약사 국가고시 합격 (합격률 높음)\n이후 개국 약사, 병원 약사, 제약 회사 연구원 진로 선택"}
-            ]
-        },
-        # -------------------- [경영 / 금융 / 법조 계열] --------------------
-        "공인회계사(CPA)": {
-            "majors": ["경영학과", "경제학과", "회계학과", "세무학과"],
-            "hs_general": ["경제", "확률과 통계", "사회문화"],
-            "hs_career": ["경제 수학", "실용 경제", "사회문제 탐구"],
-            "roadmap": [
-                {"step": "1️⃣ 학점 이수 & 영어", "desc": "회계학/세무학/경영학/경제학 필수 학점 이수\n토익 700점 이상 취득 (응시 자격)"},
-                {"step": "2️⃣ 1차 시험", "desc": "경영학, 경제원론, 상법, 세법개론, 회계학\n객관식 시험, 고득점 필요"},
-                {"step": "3️⃣ 2차 시험", "desc": "세법, 재무관리, 회계감사, 원가회계, 재무회계\n주관식 서술형, 부분 합격 제도 활용"}
-            ]
-        },
-        "변호사 (로스쿨)": {
-            "majors": ["자유전공학부", "정치외교학과", "경제학과", "법학과"],
-            "hs_general": ["정치와 법", "생활과 윤리", "화법과 작문"],
-            "hs_career": ["사회문제 탐구", "고전 읽기", "인문학적 소양"],
-            "roadmap": [
-                {"step": "1️⃣ 학부(GPA) & 영어", "desc": "학점 4.0/4.5 이상 목표 (성실성 지표)\n토익 900점 이상 고득점 확보"},
-                {"step": "2️⃣ LEET (법학적성시험)", "desc": "언어이해, 추리논증 고득점 획득\n자기소개서 및 면접 준비 (법조인 적성 어필)"},
-                {"step": "3️⃣ 로스쿨 & 변시", "desc": "3년 과정 수료 후 변호사 시험 합격\n재학 중 로펌 인턴(컨펌) 또는 재판연구원 준비"}
-            ]
-        },
-        "경영 컨설턴트": {
-            "majors": ["경영학과", "산업공학과", "경제학과", "심리학과"],
-            "hs_general": ["경제", "사회문화", "확률과 통계", "영어회화"],
-            "hs_career": ["사회문제 탐구", "국제 경제", "비즈니스 영어"],
-            "roadmap": [
-                {"step": "1️⃣ 전략적 사고", "desc": "대학 내 경영 전략 학회 활동 필수\n논리적 문제 해결(Case Study) 훈련"},
-                {"step": "2️⃣ RA 인턴십", "desc": "MBB(맥킨지, BCG, 베인) 등 컨설팅 펌 RA 근무\n리서치 능력 및 장표(PPT) 작성 스킬 습득"},
-                {"step": "3️⃣ 케이스 인터뷰", "desc": "Mock Interview(모의 면접) 무한 반복\n영어 프레젠테이션 및 빠른 수리 능력 필요"}
-            ]
-        },
-        # -------------------- [공공 / 교육 계열] --------------------
-        "5급 행정고시": {
-            "majors": ["행정학과", "경제학과", "정치외교학과"],
-            "hs_general": ["정치와 법", "한국사", "경제", "사회문화"],
-            "hs_career": ["국제 정치", "사회 탐구 방법", "지역 이해"],
-            "roadmap": [
-                {"step": "1️⃣ 진입 요건", "desc": "한국사능력검정 1급, 토익 700점 등 영어 성적\nPSAT(공직적격성평가) 준비 (자료해석 중요)"},
-                {"step": "2️⃣ 2차 논술", "desc": "경제학, 행정법, 행정학, 정치학 등 5과목\n논리적 답안 작성 훈련 (신림동 학원가 활용)"},
-                {"step": "3️⃣ 3차 면접", "desc": "공직가치관, 직무역량, 집단 토론 평가\n최종 합격 시 사무관 임용"}
-            ]
-        },
-        "중등 교사": {
-            "majors": ["사범대학(교육학과, 국어교육과 등)", "교직이수"],
-            "hs_general": ["윤리와 사상", "교육학(선택)", "심리학"],
-            "hs_career": ["인문학적 감수성과 도덕적 상상력", "철학"],
-            "roadmap": [
-                {"step": "1️⃣ 교원 자격증", "desc": "사범대 졸업 또는 일반대 교직이수 과정 수료\n한국사 3급 이상 취득"},
-                {"step": "2️⃣ 임용고시 1차", "desc": "교육학(논술) + 전공(서술형/기입형)\n전공 지식의 깊이와 교육학 이론 암기 필요"},
-                {"step": "3️⃣ 임용고시 2차", "desc": "심층 면접, 수업 실연(지도안 작성)\n실제 학생들을 가르치는 능력 평가"}
-            ]
-        },
-        # -------------------- [예술 / 창작 계열] --------------------
-        "방송 PD": {
-            "majors": ["신문방송학과", "미디어커뮤니케이션학과", "연극영화과"],
-            "hs_general": ["언어와 매체", "문학", "사회문화", "생활과 윤리"],
-            "hs_career": ["매체와 비평", "영상 제작 기초", "예술 감상과 비평"],
-            "roadmap": [
-                {"step": "1️⃣ 콘텐츠 감각", "desc": "다양한 영상 제작 경험 (동아리, 유튜브)\n세상을 보는 시야 넓히기 (독서, 여행)"},
-                {"step": "2️⃣ 언론고시", "desc": "작문/논술 시험 준비 (창의력 + 논리력)\n시사상식 및 한국어능력시험 공부"},
-                {"step": "3️⃣ 실무 평가", "desc": "기획안 작성, 현장 미션, 합숙 평가\n면접을 통해 기획 의도와 인성 어필"}
-            ]
-        },
-        "웹툰 작가": {
-            "majors": ["만화애니메이션학과", "시각디자인학과", "문예창작과"],
-            "hs_general": ["미술", "문학", "생활과 윤리"],
-            "hs_career": ["미술 창작", "드로잉", "스토리텔링"],
-            "roadmap": [
-                {"step": "1️⃣ 기본기", "desc": "드로잉 실력 및 디지털 툴(클립스튜디오 등) 숙련\n단편 원고 제작으로 연출 감각 익히기"},
-                {"step": "2️⃣ 포트폴리오", "desc": "네이버 도전만화, 베도 등 플랫폼 연재 시도\n공모전(네이버 최강자전 등) 출품"},
-                {"step": "3️⃣ 데뷔 및 연재", "desc": "플랫폼 계약 또는 에이전시 계약\n주간 연재를 위한 체력 관리와 세이브 원고 확보"}
-            ]
-        },
-        # -------------------- [기타 전문직] --------------------
-        "항공기 조종사": {
-            "majors": ["항공운항학과"],
-            "hs_general": ["물리학I", "지구과학I", "영어회화"],
-            "hs_career": ["항공 우주 관련 과목", "심화 영어 회화"],
-            "roadmap": [
-                {"step": "1️⃣ 비행 교육", "desc": "항공운항과 입학 또는 울진비행교육원 입교\nPPL(자가용), CPL(사업용) 면장 취득"},
-                {"step": "2️⃣ 타임 빌딩", "desc": "교관 활동 등을 통해 비행 시간(Time Building) 축적\n항공사 입사 요건(250~1000시간) 충족"},
-                {"step": "3️⃣ 입사 및 훈련", "desc": "항공사 부기장 채용 합격\n기종 한정 심사(Type Rating) 후 라인 투입"}
-            ]
-        },
-        "큐레이터": {
-            "majors": ["미술사학과", "박물관학과", "예술경영학과"],
-            "hs_general": ["세계사", "미술", "사회문화"],
-            "hs_career": ["미술 감상과 비평", "예술사", "문화 콘텐츠 일반"],
-            "roadmap": [
-                {"step": "1️⃣ 전문 지식", "desc": "대학원 진학(석사 이상) 필수적인 경우가 많음\n학예사 자격증 취득 (준학예사 시험 + 경력)"},
-                {"step": "2️⃣ 현장 경험", "desc": "박물관, 미술관 인턴십 및 도슨트 활동\n전시 기획 보조 및 소장품 관리 실무"},
-                {"step": "3️⃣ 정규직 진입", "desc": "국공립/사립 미술관 학예연구사 채용 지원\n전시 기획 포트폴리오 관리 중요"}
-            ]
-        }
+    # 2. 상세 진로 가이드 (30개 이상 확장)
+    # [Tip] 코드 길이상 주요 직업군은 상세히, 나머지는 패턴화하여 작성
+    guide = {
+        # --- IT/공학 ---
+        "소프트웨어 개발자": {"major": "컴퓨터공학, 소프트웨어학", "hs_g": "수학I/II, 미적분, 물리학I, 정보", "hs_c": "인공지능 수학, 정보과학", "steps": ["CS 기초(자료구조/알고리즘)", "나만의 웹/앱 프로젝트 배포", "코딩테스트 및 기술면접"]},
+        "데이터 사이언티스트": {"major": "통계학, 산업공학, 데이터사이언스", "hs_g": "확률과 통계, 미적분, 사회문제탐구", "hs_c": "실용 통계, 수학과제 탐구", "steps": ["Python/SQL 및 통계학 마스터", "Kaggle 등 분석 대회 참여", "석사 진학 또는 실무 프로젝트"]},
+        "반도체 엔지니어": {"major": "전자공학, 신소재공학", "hs_g": "물리학I/II, 화학I, 미적분", "hs_c": "공학 일반, 고급 물리학", "steps": ["회로이론/반도체공학 학점 관리", "반도체 공정 실습 경험", "대기업 직무적성검사(GSAT 등)"]},
+        "정보보안 전문가": {"major": "정보보호학, 컴퓨터공학", "hs_g": "정보, 수학I/II, 확률과 통계", "hs_c": "정보과학, 암호학 기초(독학)", "steps": ["네트워크/운영체제 심화 학습", "해킹 방어 대회(CTF) 참여", "정보보안기사 자격증"]},
+        "AI 연구원": {"major": "컴퓨터공학, 인공지능학, 수학", "hs_g": "미적분, 기하, 확률과 통계", "hs_c": "인공지능 수학, 심화 수학", "steps": ["대학원(석/박사) 진학 필수", "최신 논문 구현 및 게재", "PyTorch/TensorFlow 숙련"]},
+        
+        # --- 의료/보건 ---
+        "의사 (전문의)": {"major": "의예과", "hs_g": "생명과학I, 화학I, 미적분", "hs_c": "생명과학II, 화학II", "steps": ["의대 6년(예과+본과)", "의사 국가고시 합격", "인턴 1년 + 레지던트 3~4년"]},
+        "약사": {"major": "약학과", "hs_g": "화학I, 생명과학I, 미적분", "hs_c": "화학II, 융합과학 탐구", "steps": ["약대 6년 과정 입학", "약학 필수 실무 실습", "약사 면허 시험 합격"]},
+        "간호사": {"major": "간호학과", "hs_g": "생명과학I, 생활과 윤리", "hs_c": "보건 간호, 인체 구조와 기능", "steps": ["간호학과 4년 졸업", "간호사 국가고시 합격", "대학병원/종합병원 취업"]},
+        "수의사": {"major": "수의예과", "hs_g": "생명과학I, 화학I", "hs_c": "생명과학II, 고급 생명과학", "steps": ["수의대 6년 졸업", "수의사 국가고시 합격", "임상(동물병원) 또는 비임상 진로"]},
+        "치과의사": {"major": "치의예과", "hs_g": "생명과학I, 화학I, 미적분", "hs_c": "화학II, 과학과제 연구", "steps": ["치대/치전원 졸업", "치과의사 면허 취득", "전문의 과정(선택) 또는 개원"]},
+        "물리치료사": {"major": "물리치료학과", "hs_g": "생명과학I, 체육", "hs_c": "스포츠 생활, 재활 기초", "steps": ["관련 학과 졸업", "국가고시 합격", "병원 재활센터 취업"]},
+
+        # --- 경영/법조 ---
+        "경영 컨설턴트": {"major": "경영학, 경제학, 산업공학", "hs_g": "경제, 사회문화, 영어회화", "hs_c": "국제 경제, 사회문제 탐구", "steps": ["전략 학회 활동 및 공모전", "RA(Research Assistant) 인턴", "Case Interview 준비"]},
+        "공인회계사(CPA)": {"major": "경영학, 회계학, 세무학", "hs_g": "경제, 확률과 통계", "hs_c": "경제 수학, 실용 경제", "steps": ["학점 이수 및 토익 점수 확보", "1차 시험(객관식)", "2차 시험(서술형)"]},
+        "변호사 (로스쿨)": {"major": "자유전공, 정치외교, 경제", "hs_g": "정치와 법, 생활과 윤리, 화작", "hs_c": "사회문제 탐구, 고전 읽기", "steps": ["학점(GPA) 및 토익 고득점", "LEET(법학적성시험) 준비", "로스쿨 3년 + 변호사 시험"]},
+        "판사/검사": {"major": "로스쿨 진학 필수", "hs_g": "정치와 법, 윤리와 사상", "hs_c": "사회 탐구 방법", "steps": ["로스쿨 최상위권 성적 유지", "검찰 실무/재판 연구원 선발", "본시험 합격"]},
+        "변리사": {"major": "전기전자, 기계, 화학공학", "hs_g": "물리학I, 화학I, 미적분", "hs_c": "지식재산 일반, 공학 일반", "steps": ["이공계 전공 지식 확보", "토익 점수 취득", "변리사 1차/2차 시험 합격"]},
+        "노무사": {"major": "법학, 경영학, 사회학", "hs_g": "정치와 법, 사회문화", "hs_c": "사회문제 탐구", "steps": ["노동법 지식 습득", "영어 성적 확보", "공인노무사 자격 시험"]},
+        "관세사": {"major": "무역학, 국제통상학", "hs_g": "경제, 영어", "hs_c": "국제 경제, 비즈니스 영어", "steps": ["무역 영어/회계학 공부", "1차 시험 합격", "2차 논술 시험 합격"]},
+
+        # --- 공공/교육 ---
+        "5급 행정고시": {"major": "행정학, 경제학, 정치외교", "hs_g": "정치와 법, 한국사, 경제", "hs_c": "국제 정치, 지역 이해", "steps": ["PSAT(1차) 및 한국사/영어", "2차 전공 논술(경제/행정법)", "3차 심층 면접"]},
+        "7/9급 공무원": {"major": "행정학, 전공 무관", "hs_g": "국어, 영어, 한국사", "hs_c": "사회문제 탐구", "steps": ["필기 시험 과목 집중", "가산점 자격증(컴활 등) 취득", "면접 준비"]},
+        "경찰공무원": {"major": "경찰행정학과", "hs_g": "정치와 법, 체육", "hs_c": "형사법 기초(대체가능)", "steps": ["필기(형사법/경찰학/헌법)", "체력 검정(상시 관리)", "면접 및 신원 조회"]},
+        "외교관": {"major": "정치외교학, 국제학", "hs_g": "영어, 제2외국어, 세계사", "hs_c": "국제 정치, 국제 관계", "steps": ["외교관 후보자 선발시험(PSAT)", "전공 평가 및 통합 논술", "외교원 연수"]},
+        "중등 교사": {"major": "사범대학(해당 전공)", "hs_g": "교육학(선택), 전공 관련 과목", "hs_c": "교육학, 심리학", "steps": ["교원 자격증 취득", "임용고시 1차(교육학/전공)", "임용고시 2차(수업실연/면접)"]},
+        "대학교수": {"major": "관련 전공 박사", "hs_g": "전공 심화 과목", "hs_c": "과제 연구", "steps": ["박사 학위 취득", "우수한 연구 실적(논문)", "대학 임용 지원"]},
+
+        # --- 예술/기타 ---
+        "방송 PD": {"major": "신문방송학, 미디어커뮤니케이션", "hs_g": "언어와 매체, 사회문화", "hs_c": "매체와 비평, 영상 제작", "steps": ["영상 제작 경험(동아리/유튜브)", "작문/논술(언론고시) 준비", "실무 면접 및 기획안 평가"]},
+        "기자": {"major": "언론홍보학, 사회학, 정치학", "hs_g": "화법과 작문, 정치와 법", "hs_c": "사회 탐구 방법", "steps": ["글쓰기/논술 능력 배양", "시사 상식 및 토익", "언론사 공채 필기/면접"]},
+        "웹툰 작가": {"major": "만화애니메이션과", "hs_g": "미술, 문학", "hs_c": "드로잉, 스토리텔링", "steps": ["디지털 드로잉 숙련", "포트폴리오 제작 및 공모전", "플랫폼 연재 계약"]},
+        "항공기 조종사": {"major": "항공운항학과", "hs_g": "물리학I, 지구과학I, 영어", "hs_c": "고급 지구과학", "steps": ["비행 교육원 입교 및 면장 취득", "비행 시간(타임빌딩) 축적", "항공사 입사"]},
+        "승무원": {"major": "항공서비스학과, 어문계열", "hs_g": "영어회화, 제2외국어", "hs_c": "여행 지리, 매너와 에티켓", "steps": ["어학 성적(토익/스피킹) 확보", "서비스 마인드 및 체력 관리", "항공사 면접(이미지/방송)"]},
+        "건축가": {"major": "건축학과(5년제)", "hs_g": "물리학I, 미적분, 미술", "hs_c": "공학 일반, 미술 창작", "steps": ["건축학 인증 프로그램 졸업", "실무 수련(3년)", "건축사 자격 시험"]},
     }
     
-    # 데이터가 30개 미만인 경우 UI 테스트를 위해 복사해서 늘려둠 (실제 사용시엔 내용을 다 채워야 함)
-    # 여기서는 코드 길이상 대표적인 14개만 상세히 작성하고 나머지는 Mapping만 함
-    
-    return df, career_guide
+    return df, guide
 
 df, career_guide = load_data()
 
 # -----------------------------------------------------------------------------
-# 3. 사이드바 (공통 필터)
+# 3. 사이드바 (상태 관리)
 # -----------------------------------------------------------------------------
+if 'step' not in st.session_state:
+    st.session_state.step = 1  # 1: 홀란드, 2: 밸런스, 3: 결과
+
 with st.sidebar:
-    st.header("🎯 내비게이션")
-    st.info("고교학점제 맞춤형 진로 설계 솔루션입니다.")
-    if 'user_vector' not in st.session_state:
-        st.session_state['user_vector'] = [20, 20, 20, 20, 20]
+    st.header("🧭 진행 상황")
+    
+    if st.session_state.step == 1:
+        st.markdown("<div class='step-indicator'>STEP 1. 적성 검사</div>", unsafe_allow_html=True)
+        st.info("나의 흥미 유형(홀란드 코드)을 알아보는 단계입니다.")
+    elif st.session_state.step == 2:
+        st.markdown("<div class='step-indicator'>STEP 2. 가치관 설정</div>", unsafe_allow_html=True)
+        st.info("직업 선택 시 무엇을 중요하게 생각하시나요?")
+    else:
+        st.markdown("<div class='step-indicator'>STEP 3. 결과 확인</div>", unsafe_allow_html=True)
+        st.success("분석 완료! 추천 직업과 상세 로드맵을 확인하세요.")
+        if st.button("🔄 처음부터 다시 하기"):
+            st.session_state.step = 1
+            st.rerun()
+
     st.divider()
-    st.markdown("**Created by Plant the Seed 🌱**")
+    st.caption("Created by Plant the Seed 🌱")
 
 # -----------------------------------------------------------------------------
-# 4. 메인 콘텐츠
+# 4. 메인 콘텐츠 (단계별 흐름 제어)
 # -----------------------------------------------------------------------------
-st.title("🧭 진로 설계 나침반 Pro")
-st.markdown("##### AI 적성 검사부터 고교학점제 과목 선택, 커리어 로드맵까지 한 번에!")
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "1️⃣ 홀란드 적성 검사", 
-    "2️⃣ 가치관 밸런스", 
-    "3️⃣ AI 직업 추천", 
-    "📚 진로·진학 백과"
-])
-
-# [TAB 1] 홀란드 (생략 - 이전 코드와 동일)
-with tab1:
-    st.subheader("🕵️‍♀️ 나의 흥미 유형 찾기 (RIASEC)")
-    st.write("질문에 대한 흥미도를 선택해주세요.")
+# =============================================================================
+# [STEP 1] 홀란드 적성 검사
+# =============================================================================
+if st.session_state.step == 1:
+    st.markdown("<h1 class='main-header'>🕵️‍♀️ STEP 1. 나의 흥미 유형 찾기</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='sub-header'>각 활동에 대해 얼마나 흥미가 있는지 선택해주세요. (1점: 싫음 ~ 5점: 매우 좋음)</p>", unsafe_allow_html=True)
+    
     c1, c2 = st.columns(2)
     with c1:
-        r = st.slider("🔧 [R] 기계/도구 조작", 1, 5, 3)
-        i = st.slider("🔬 [I] 탐구/분석/수학", 1, 5, 3)
-        a = st.slider("🎨 [A] 예술/창의/표현", 1, 5, 3)
+        st.markdown("#### 🔧 사물/도구")
+        r = st.slider("기계를 만지거나 도구로 무언가 만드는 것이 좋은가요?", 1, 5, 3)
+        st.markdown("#### 🔬 탐구/분석")
+        i = st.slider("수학 문제를 풀거나 과학적 원리를 탐구하는 게 재미있나요?", 1, 5, 3)
+        st.markdown("#### 🎨 예술/창작")
+        a = st.slider("상상력이 풍부하고 무언가 표현하는 것을 좋아하나요?", 1, 5, 3)
     with c2:
-        s = st.slider("🤝 [S] 봉사/교육/상담", 1, 5, 3)
-        e = st.slider("🎤 [E] 설득/경영/리드", 1, 5, 3)
-        c = st.slider("🗂️ [C] 정리/사무/규칙", 1, 5, 3)
-    scores = {'R': r, 'I': i, 'A': a, 'S': s, 'E': e, 'C': c}
-    top_code = sorted(scores.items(), key=lambda x: x[1], reverse=True)[0][0]
-    st.session_state['holland_code'] = top_code
-    st.success(f"당신의 적성 코드는 **[{top_code}형]** 입니다!")
+        st.markdown("#### 🤝 봉사/교육")
+        s = st.slider("친구의 고민을 들어주거나 가르쳐주는 게 보람찬가요?", 1, 5, 3)
+        st.markdown("#### 🎤 리더십/설득")
+        e = st.slider("앞장서서 이끄는 것이나 설득하는 것을 잘하나요?", 1, 5, 3)
+        st.markdown("#### 🗂️ 정리/규칙")
+        c = st.slider("계획을 세우고 규칙에 따라 정리하는 것이 편한가요?", 1, 5, 3)
 
-# [TAB 2] 가치관 (생략 - 이전 코드와 동일)
-with tab2:
-    st.subheader("⚖️ 직업 가치관 설정")
-    v_money = st.slider("💰 돈 (Money)", 0, 100, 50)
-    v_wlb = st.slider("🧘 워라밸 (WLB)", 0, 100, 50)
-    v_culture = st.slider("🎨 문화 (Culture)", 0, 100, 20)
-    v_loc = st.slider("📍 근무지 (Location)", 0, 100, 30)
-    v_stable = st.slider("🛡️ 안정성 (Stability)", 0, 100, 50)
+    if st.button("다음 단계로 이동 ➡️", type="primary"):
+        # 점수 계산 및 저장
+        scores = {'R': r, 'I': i, 'A': a, 'S': s, 'E': e, 'C': c}
+        # 상위 2개 코드 조합 (예: IR)
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        top_code = sorted_scores[0][0] + sorted_scores[1][0]
+        st.session_state.holland_code = top_code
+        st.session_state.step = 2
+        st.rerun()
+
+# =============================================================================
+# [STEP 2] 가치관 밸런스 게임
+# =============================================================================
+elif st.session_state.step == 2:
+    st.markdown("<h1 class='main-header'>⚖️ STEP 2. 직업 가치관 밸런스</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='sub-header'>직업을 선택할 때 **중요하게 생각하는 요소**의 비중을 조절하세요. (총합은 자동 계산됩니다)</p>", unsafe_allow_html=True)
+
+    col_input, col_chart = st.columns([1, 1])
+    
+    with col_input:
+        v_money = st.slider("💰 **돈 (Money)** : 높은 연봉과 보상", 0, 100, 50)
+        v_wlb = st.slider("🧘 **워라밸 (WLB)** : 저녁이 있는 삶, 휴식", 0, 100, 50)
+        v_culture = st.slider("🎨 **문화 (Culture)** : 수평적이고 자유로운 분위기", 0, 100, 20)
+        v_loc = st.slider("📍 **근무지 (Location)** : 서울/수도권, 출퇴근 편의", 0, 100, 30)
+        v_stable = st.slider("🛡️ **안정성 (Stability)** : 정년 보장, 낮은 해고 위험", 0, 100, 50)
+
+    # 벡터 정규화
     total = v_money + v_wlb + v_culture + v_loc + v_stable
     if total == 0: total = 1
-    st.session_state['user_vector'] = [(x/total)*100 for x in [v_money, v_wlb, v_culture, v_loc, v_stable]]
-    st.info("설정이 저장되었습니다. 'AI 직업 추천' 탭에서 결과를 확인하세요.")
+    user_vec = [(x/total)*100 for x in [v_money, v_wlb, v_culture, v_loc, v_stable]]
+    st.session_state.user_vector = user_vec
 
-# [TAB 3] 추천 (생략 - 이전 코드와 동일)
-with tab3:
-    st.subheader("🎯 데이터 기반 직업 추천")
-    if st.button("🚀 분석 결과 보기"):
-        def calc_score(row):
-            job_vec = np.array([row['Money'], row['WLB'], row['Culture'], row['Location'], row['Stability']])
-            user_vec = np.array(st.session_state['user_vector'])
-            return 100 - np.linalg.norm(job_vec - user_vec)
-        df['Score'] = df.apply(calc_score, axis=1)
-        best_match = df.sort_values('Score', ascending=False).head(5)
-        st.dataframe(best_match[['직업군', 'Score', 'Money', 'WLB', 'Stability']].set_index('직업군'))
+    with col_chart:
+        fig = go.Figure(go.Scatterpolar(
+            r=user_vec + [user_vec[0]],
+            theta=['돈', '워라밸', '문화', '근무지', '안정성', '돈'],
+            fill='toself',
+            name='나의 가치관',
+            line_color='#3B82F6'
+        ))
+        fig.update_layout(
+            polar=dict(radialaxis=dict(visible=True, range=[0, 40])), 
+            showlegend=False, 
+            height=350,
+            title="나의 가치관 다이아몬드"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    if st.button("결과 분석 보기 🚀", type="primary"):
+        st.session_state.step = 3
+        st.rerun()
 
 # =============================================================================
-# [TAB 4] 진로·진학 백과 (업그레이드 버전!)
+# [STEP 3] 결과 및 로드맵
 # =============================================================================
-with tab4:
-    st.subheader("📚 진로·진학 대백과")
-    st.markdown("고교학점제 선택 과목부터 대학 전공, 취업 로드맵까지 상세 정보를 제공합니다.")
+elif st.session_state.step == 3:
+    st.markdown(f"<h1 class='main-header'>🎯 분석 결과: [{st.session_state.holland_code}형]</h1>", unsafe_allow_html=True)
     
-    # 직업 검색 및 선택
-    job_options = sorted(list(career_guide.keys()))
-    selected_job = st.selectbox("🔍 관심 있는 직업을 선택하세요:", job_options)
+    # 1. 추천 알고리즘
+    def calc_score(row):
+        # 가치관 점수 (유클리드 거리)
+        job_vec = np.array([row['Money'], row['WLB'], row['Culture'], row['Location'], row['Stability']])
+        user_vec = np.array(st.session_state.user_vector)
+        value_match = 100 - np.linalg.norm(job_vec - user_vec)
+        
+        # 홀란드 보너스 (코드가 1개라도 겹치면 가산점)
+        holland_bonus = 0
+        if st.session_state.holland_code[0] in row['Holland_Code']: holland_bonus += 5
+        if st.session_state.holland_code[1] in row['Holland_Code']: holland_bonus += 3
+        
+        return value_match + holland_bonus
+
+    df['Score'] = df.apply(calc_score, axis=1)
+    # 상위 5개 직업 추출
+    top_jobs = df.sort_values('Score', ascending=False).head(5)
     
-    if selected_job:
-        info = career_guide[selected_job]
+    # 2. 추천 직업 리스트 (가로 배치)
+    st.markdown("### 🏆 당신을 위한 TOP 5 추천 직업")
+    st.caption("아래 직업 중 하나를 선택하면 상세 로드맵이 펼쳐집니다.")
+    
+    # 선택을 위한 라디오 버튼 or 버튼 그룹 (여기서는 Selectbox 사용)
+    # job_names = top_jobs['직업군'].tolist()
+    
+    # 카드 형태로 보여주기 위해 컬럼 사용
+    cols = st.columns(5)
+    selected_job_from_card = None
+    
+    # 기본 선택값 (1위 직업)
+    if 'selected_job' not in st.session_state:
+        st.session_state.selected_job = top_jobs.iloc[0]['직업군']
+
+    # 직업 선택 UI
+    job_options = top_jobs['직업군'].tolist()
+    st.session_state.selected_job = st.selectbox(
+        "👉 상세 정보를 확인할 직업을 선택하세요:",
+        job_options,
+        index=0
+    )
+
+    st.divider()
+
+    # 3. 상세 로드맵 뷰 (Expandable Section)
+    target_job = st.session_state.selected_job
+    
+    if target_job in career_guide:
+        info = career_guide[target_job]
         
-        st.divider()
-        st.markdown(f"## 🚩 **{selected_job}** 마스터 플랜")
+        st.markdown(f"## 🚩 **{target_job}** 마스터 플랜")
         
-        # 1. 고교학점제 과목 추천 (카드 UI)
-        st.markdown("### 🏫 고교학점제 과목 추천")
-        c1, c2, c3 = st.columns([1, 1, 1])
-        
+        # [A] 학과 및 고교학점제
+        c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown("""<div class="info-box">
-                <h4>🎓 관련 학과</h4>
-                <p>대학 진학 시 유리한 전공</p>
-            </div>""", unsafe_allow_html=True)
-            for m in info['majors']:
-                st.caption(f"✔️ {m}")
-
+                <span class="info-title">🎓 대학 전공 추천</span>
+                <p>{}</p>
+            </div>""".format(info['major']), unsafe_allow_html=True)
+        
         with c2:
             st.markdown("""<div class="info-box">
-                <h4>📘 일반선택 과목</h4>
-                <p>수능/내신 기초 과목</p>
-            </div>""", unsafe_allow_html=True)
-            for s in info['hs_general']:
-                st.markdown(f"<span class='subject-tag'>{s}</span>", unsafe_allow_html=True)
-
+                <span class="info-title">📘 고교 일반선택 과목</span>
+                {}
+            </div>""".format("".join([f"<span class='tag-base tag-gen'>{s}</span>" for s in info['hs_g'].split(', ')])), unsafe_allow_html=True)
+            
         with c3:
             st.markdown("""<div class="info-box">
-                <h4>🚀 진로선택 과목</h4>
-                <p>전공 적합성 어필 과목</p>
-            </div>""", unsafe_allow_html=True)
-            for s in info['hs_career']:
-                st.markdown(f"<span class='career-tag'>{s}</span>", unsafe_allow_html=True)
-        
-        # 2. 커리어 로드맵 (Timeline)
+                <span class="info-title">🚀 고교 진로선택 과목</span>
+                {}
+            </div>""".format("".join([f"<span class='tag-base tag-career'>{s}</span>" for s in info['hs_c'].split(', ')])), unsafe_allow_html=True)
+            
+        # [B] 단계별 로드맵
         st.write("")
-        st.markdown("### 🛤️ 단계별 성장 로드맵")
+        st.markdown("### 🛤️ 커리어 로드맵")
         
-        for idx, step in enumerate(info['roadmap']):
-            with st.expander(f"STEP {idx+1}: {step['step']}", expanded=True):
-                st.write(step['desc'])
-                
+        for idx, step_text in enumerate(info['steps']):
+            # 카드 스타일의 스텝 표시
+            st.info(f"**STEP {idx+1}** : {step_text}")
+            
     else:
-        st.info("👆 위 목록에서 직업을 선택하면 상세 정보가 나타납니다.")
+        st.warning("선택하신 직업의 상세 데이터가 준비 중입니다.")
+
+    # 4. 전체 데이터 보기 (옵션)
+    with st.expander("📊 추천 직업 데이터 상세 점수 보기"):
+        st.dataframe(top_jobs[['직업군', 'Holland_Code', 'Score', 'Money', 'WLB', 'Stability']].set_index('직업군'))
