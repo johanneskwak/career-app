@@ -1,19 +1,19 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import numpy as np
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 & 스타일
+# 1. 페이지 설정
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Career Balance Sheet",
-    page_icon="⚖️",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Career Balance & Holland",
+    page_icon="🧭",
+    layout="wide"
 )
 
 # -----------------------------------------------------------------------------
-# 2. 데이터 로드 (내장 데이터 사용 - 100% 안전)
+# 2. 데이터 로드 (내장 데이터 - 총합 100점 기준)
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_data():
@@ -31,185 +31,144 @@ def load_data():
             '노무사', '감정평가사', '관세사', '변리사', '1인 크리에이터/유튜버',
             '워케이션 프리랜서', '공간/인테리어 디자이너', '메타버스/VR 크리에이터', '데이터 사이언티스트'
         ],
-        'Money': [
-            50, 55, 50, 40, 50, 35, 25, 35, 40, 40, 45, 35, 25, 25, 15, 25, 15, 20, 30, 30,
-            45, 45, 30, 30, 35, 40, 25, 30, 35, 15, 25, 25, 45, 25, 15, 25, 45, 40, 40, 45,
-            35, 40, 30, 25, 20, 30, 35, 40, 35, 45, 25, 20, 25, 30, 45
+        # RIASEC 유형 (임의 매핑 예시)
+        'Holland_Code': [
+            'EC', 'EC', 'EI', 'CE', 'EC', 'IR', 'EI', 'IR', 'IR', 'EC',
+            'ES', 'CS', 'CS', 'CS', 'CS', 'ES', 'SA', 'CS', 'IA', 'IR',
+            'IS', 'IR', 'SC', 'SI', 'IR', 'IS', 'AE', 'AE', 'AI', 'AE', 'AE',
+            'AE', 'RI', 'SE', 'SE', 'RA', 'RI', 'RI', 'RI', 'RI', 'IR',
+            'RI', 'RE', 'ES', 'AE', 'AS', 'EC', 'EC', 'CE', 'IE', 'AE',
+            'AE', 'AR', 'AI', 'IR'
         ],
-        'WLB': [
-            5, 5, 5, 10, 10, 20, 15, 15, 15, 15, 10, 25, 30, 30, 35, 10, 30, 35, 20, 30,
-            10, 15, 30, 10, 20, 25, 5, 5, 15, 10, 10, 10, 15, 15, 15, 5, 10, 15, 20, 20,
-            25, 5, 25, 10, 10, 25, 25, 20, 25, 10, 10, 35, 10, 20, 20
-        ],
-        'Culture': [
-            10, 5, 10, 10, 10, 15, 35, 25, 15, 10, 10, 10, 10, 5, 5, 10, 15, 10, 15, 10,
-            10, 10, 10, 10, 10, 10, 30, 15, 25, 35, 25, 20, 10, 15, 15, 15, 10, 15, 10, 5,
-            15, 10, 15, 20, 25, 15, 10, 5, 10, 10, 45, 20, 25, 25, 15
-        ],
-        'Location': [
-            20, 20, 20, 20, 15, 10, 10, 10, 10, 15, 15, 10, 10, 10, 10, 25, 10, 10, 5, 10,
-            15, 10, 10, 25, 15, 5, 20, 25, 10, 25, 25, 25, 10, 25, 30, 30, 15, 10, 10, 10,
-            5, 20, 15, 25, 25, 15, 15, 15, 15, 15, 10, 10, 25, 10, 10
-        ],
-        'Stability': [
-            15, 15, 15, 20, 15, 20, 15, 15, 20, 20, 20, 20, 25, 30, 35, 30, 30, 25, 30, 20,
-            20, 20, 20, 25, 20, 20, 20, 25, 15, 15, 15, 20, 20, 20, 25, 25, 20, 20, 20, 20,
-            20, 25, 15, 20, 20, 15, 15, 20, 15, 20, 10, 15, 15, 15, 10
-        ]
+        'Money': [50, 55, 50, 40, 50, 35, 25, 35, 40, 40, 45, 35, 25, 25, 15, 25, 15, 20, 30, 30, 45, 45, 30, 30, 35, 40, 25, 30, 35, 15, 25, 25, 45, 25, 15, 25, 45, 40, 40, 45, 35, 40, 30, 25, 20, 30, 35, 40, 35, 45, 25, 20, 25, 30, 45],
+        'WLB': [5, 5, 5, 10, 10, 20, 15, 15, 15, 15, 10, 25, 30, 30, 35, 10, 30, 35, 20, 30, 10, 15, 30, 10, 20, 25, 5, 5, 15, 10, 10, 10, 15, 15, 15, 5, 10, 15, 20, 20, 25, 5, 25, 10, 10, 25, 25, 20, 25, 10, 10, 35, 10, 20, 20],
+        'Culture': [10, 5, 10, 10, 10, 15, 35, 25, 15, 10, 10, 10, 10, 5, 5, 10, 15, 10, 15, 10, 10, 10, 10, 10, 10, 10, 30, 15, 25, 35, 25, 20, 10, 15, 15, 15, 10, 15, 10, 5, 15, 10, 15, 20, 25, 15, 10, 5, 10, 10, 45, 20, 25, 25, 15],
+        'Location': [20, 20, 20, 20, 15, 10, 10, 10, 10, 15, 15, 10, 10, 10, 10, 25, 10, 10, 5, 10, 15, 10, 10, 25, 15, 5, 20, 25, 10, 25, 25, 25, 10, 25, 30, 30, 15, 10, 10, 10, 5, 20, 15, 25, 25, 15, 15, 15, 15, 15, 10, 10, 25, 10, 10],
+        'Stability': [15, 15, 15, 20, 15, 20, 15, 15, 20, 20, 20, 20, 25, 30, 35, 30, 30, 25, 30, 20, 20, 20, 20, 25, 20, 20, 20, 25, 15, 15, 15, 20, 20, 20, 25, 25, 20, 20, 20, 20, 20, 25, 15, 20, 20, 15, 15, 20, 15, 20, 10, 15, 15, 15, 10]
     }
     return pd.DataFrame(data)
 
 df = load_data()
 
 # -----------------------------------------------------------------------------
-# 3. 사이드바
+# 3. 메인 타이틀
 # -----------------------------------------------------------------------------
-with st.sidebar:
-    st.header("🔍 Filter")
-    st.write("비교할 직업을 선택하세요.")
-    
-    job_list = sorted(df['직업군'].unique().tolist())
-    selected_jobs = st.multiselect(
-        "직업 목록 (최대 3개 추천)",
-        job_list,
-        default=["전략 컨설턴트", "7/9급 공무원"]
-    )
-    
-    st.divider()
-    st.info("""
-    **💡 항목별 가이드**
-    * **Money:** 생애 소득 & 보상
-    * **WLB:** 워라밸 & 휴식
-    * **Culture:** 조직문화 & 자율성
-    * **Location:** 근무지 & 서울 접근성
-    * **Stability:** 고용 안정 & 정년
-    """)
-
-# -----------------------------------------------------------------------------
-# 4. 차트 생성 함수 (Radar Chart)
-# -----------------------------------------------------------------------------
-def plot_radar_chart(jobs):
-    fig = go.Figure()
-    categories = ['Money', 'WLB', 'Culture', 'Location', 'Stability']
-    colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A'] 
-
-    for i, job in enumerate(jobs):
-        job_data = df[df['직업군'] == job].iloc[0]
-        values = [job_data[cat] for cat in categories]
-        values += [values[0]]
-        categories_closed = categories + [categories[0]]
-        
-        fig.add_trace(go.Scatterpolar(
-            r=values,
-            theta=categories_closed,
-            fill='toself',
-            name=job,
-            line_color=colors[i % len(colors)],
-            opacity=0.6
-        ))
-
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(visible=True, range=[0, 60], tickfont=dict(size=10, color="gray")),
-            angularaxis=dict(tickfont=dict(size=12, weight="bold"))
-        ),
-        showlegend=True,
-        legend=dict(orientation="h", y=-0.1),
-        margin=dict(l=40, r=40, t=20, b=40),
-        height=400
-    )
-    return fig
-
-# -----------------------------------------------------------------------------
-# 5. 메인 레이아웃
-# -----------------------------------------------------------------------------
-st.title("⚖️ Career Balance Sheet")
-st.markdown("##### :grey[당신의 직업 선택, 무엇을 얻고 무엇을 포기하시겠습니까?]")
-st.write("")
-
-# 스타일 설정을 위한 공통 Config (오류의 원인이었던 Pandas Styler 대신 이거 사용)
-column_config_settings = {
-    "Money": st.column_config.ProgressColumn("Money", min_value=0, max_value=60, format="%d"),
-    "WLB": st.column_config.ProgressColumn("WLB", min_value=0, max_value=60, format="%d"),
-    "Culture": st.column_config.ProgressColumn("Culture", min_value=0, max_value=60, format="%d"),
-    "Location": st.column_config.ProgressColumn("Location", min_value=0, max_value=60, format="%d"),
-    "Stability": st.column_config.ProgressColumn("Stability", min_value=0, max_value=60, format="%d"),
-}
-
-tab1, tab2, tab3 = st.tabs(["📊 비교 분석", "📋 전체 데이터", "💡 맞춤 추천"])
-
-with tab1:
-    if selected_jobs:
-        if len(selected_jobs) == 1:
-            job_name = selected_jobs[0]
-            job_row = df[df['직업군'] == job_name].iloc[0]
-            best_cat = job_row[['Money', 'WLB', 'Culture', 'Location', 'Stability']].astype(float).idxmax()
-            best_val = job_row[best_cat]
-            
-            st.markdown(f"### ✨ **{job_name}**의 핵심 키워드")
-            m1, m2, m3 = st.columns(3)
-            m1.metric(label="최고 강점", value=best_cat, delta=f"{best_val}점")
-            m2.metric(label="Money (보상)", value=job_row['Money'])
-            m3.metric(label="Stability (안정성)", value=job_row['Stability'])
-            st.divider()
-
-        col_chart, col_data = st.columns([1.5, 1])
-        with col_chart:
-            st.subheader("🕸️ 밸런스 레이더")
-            chart = plot_radar_chart(selected_jobs)
-            st.plotly_chart(chart, use_container_width=True)
-            
-        with col_data:
-            st.subheader("🔢 상세 스코어")
-            view_df = df[df['직업군'].isin(selected_jobs)].set_index('직업군')
-            view_df = view_df[['Money', 'WLB', 'Culture', 'Location', 'Stability']]
-            
-            # 여기서 오류가 났던 .style 코드를 제거하고 native config 사용
-            st.dataframe(
-                view_df,
-                column_config=column_config_settings,
-                use_container_width=True,
-                height=400
-            )
-            
-        st.info("💡 **Tip:** 차트의 면적은 총점이 같으므로 비슷합니다. 어느 방향으로 뾰족한지(성향)를 확인하세요!")
-    else:
-        st.warning("👈 왼쪽 사이드바에서 직업을 선택해주세요.")
-
-with tab2:
-    st.subheader("📁 전체 직업 데이터베이스")
-    search_term = st.text_input("직업 이름 검색", "")
-    if search_term:
-        filtered_df = df[df['직업군'].str.contains(search_term)]
-    else:
-        filtered_df = df
-    
-    # 여기서도 .style 코드를 제거하고 native config 사용
-    st.dataframe(
-        filtered_df.set_index('직업군'),
-        column_config=column_config_settings,
-        use_container_width=True,
-        height=600
-    )
-
-with tab3:
-    st.subheader("🎯 나에게 맞는 직업 찾기")
-    col_filter1, col_filter2 = st.columns(2)
-    with col_filter1:
-        priority = st.selectbox("1순위 중요 항목", ['Money', 'WLB', 'Culture', 'Location', 'Stability'])
-    with col_filter2:
-        min_score = st.slider(f"최소 {priority} 점수", 0, 60, 40)
-    result = df[df[priority] >= min_score].sort_values(by=priority, ascending=False)
-    
-    if not result.empty:
-        st.success(f"조건에 맞는 직업이 **{len(result)}**개 있습니다!")
-        st.dataframe(
-            result[['직업군', priority, 'Money', 'WLB', 'Stability']].set_index('직업군'),
-            column_config=column_config_settings,
-            use_container_width=True
-        )
-    else:
-        st.error("조건에 맞는 직업이 없습니다. 점수를 조금 낮춰보세요.")
-
+st.title("🧭 진로 나침반 (Career Compass)")
+st.markdown("##### 1단계: 홀란드 적성 검사 ➡️ 2단계: 직업 가치관 설정")
 st.divider()
-st.caption("© 2026 Plant the Seed | Data based on relative comparison (Sum=100)")
+
+# 탭 구성
+tab_holland, tab_balance, tab_result = st.tabs(["1️⃣ 홀란드 적성 검사", "2️⃣ 가치관 밸런스 설정", "3️⃣ 최종 추천 결과"])
+
+# -----------------------------------------------------------------------------
+# [TAB 1] 홀란드 적성 검사 (간이)
+# -----------------------------------------------------------------------------
+with tab_holland:
+    st.subheader("나의 흥미 유형 찾기 (RIASEC)")
+    st.write("각 질문에 대해 **얼마나 흥미가 있는지** 점수를 매겨주세요. (1점: 싫음 ~ 5점: 매우 좋음)")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        score_R = st.slider("🔧 [R] 기계, 도구, 사물을 다루는 활동을 좋아하나요?", 1, 5, 3)
+        score_I = st.slider("🔬 [I] 관찰하고, 탐구하고, 분석하는 것을 좋아하나요?", 1, 5, 3)
+        score_A = st.slider("🎨 [A] 창의적이고 예술적인 표현 활동을 좋아하나요?", 1, 5, 3)
+        
+    with col2:
+        score_S = st.slider("🤝 [S] 다른 사람을 돕거나 가르치는 것을 좋아하나요?", 1, 5, 3)
+        score_E = st.slider("🎤 [E] 남을 설득하거나 리드하는 것을 좋아하나요?", 1, 5, 3)
+        score_C = st.slider("🗂️ [C] 자료를 정리하고 규칙을 따르는 것을 좋아하나요?", 1, 5, 3)
+
+    # 결과 계산
+    scores = {'R': score_R, 'I': score_I, 'A': score_A, 'S': score_S, 'E': score_E, 'C': score_C}
+    sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    top_code = sorted_scores[0][0] + sorted_scores[1][0] # 상위 2개 코드 조합
+    
+    st.info(f"👉 당신의 추정 홀란드 코드는 **[{top_code}]** 유형입니다.")
+    # 세션 상태에 저장 (다른 탭에서 쓰기 위해)
+    st.session_state['user_holland_code'] = top_code[0] # 가장 높은 유형 1개만 필터링용으로 사용
+
+# -----------------------------------------------------------------------------
+# [TAB 2] 가치관 밸런스 설정 (직선형 슬라이더)
+# -----------------------------------------------------------------------------
+with tab_balance:
+    st.subheader("직업 가치관 설정")
+    st.write("직업을 선택할 때 **중요하게 생각하는 비율**을 조정하세요.")
+    
+    # 직선형 슬라이더 UI
+    val_money = st.slider("💰 돈 (Money)", 0, 100, 50)
+    val_wlb = st.slider("🧘 워라밸 (WLB)", 0, 100, 50)
+    val_culture = st.slider("🎨 문화 (Culture)", 0, 100, 20)
+    val_location = st.slider("📍 근무지 (Location)", 0, 100, 30)
+    val_stability = st.slider("🛡️ 안정성 (Stability)", 0, 100, 50)
+    
+    # 사용자 입력 총합 계산
+    total_input = val_money + val_wlb + val_culture + val_location + val_stability
+    if total_input == 0: total_input = 1 # 0으로 나누기 방지
+
+    # 정규화 (사용자 입력을 100점 만점으로 환산)
+    user_vector = [
+        (val_money / total_input) * 100,
+        (val_wlb / total_input) * 100,
+        (val_culture / total_input) * 100,
+        (val_location / total_input) * 100,
+        (val_stability / total_input) * 100
+    ]
+    
+    # 미리보기 차트
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=['Money', 'WLB', 'Culture', 'Location', 'Stability'],
+        y=user_vector,
+        marker_color=['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A']
+    ))
+    fig.update_layout(title="나의 가치관 비중 (자동 환산됨)", yaxis_range=[0, 60], height=300)
+    st.plotly_chart(fig, use_container_width=True)
+
+# -----------------------------------------------------------------------------
+# [TAB 3] 최종 추천 결과
+# -----------------------------------------------------------------------------
+with tab_result:
+    st.subheader("🎯 AI 직업 추천")
+    
+    if st.button("추천 직업 보기 (Click)", type="primary"):
+        # 1. 유사도 계산 로직 (유클리드 거리)
+        def calculate_similarity(row):
+            job_vector = np.array([row['Money'], row['WLB'], row['Culture'], row['Location'], row['Stability']])
+            user_vec = np.array(user_vector)
+            # 거리가 가까울수록 유사함 (점수화: 100 - 거리)
+            dist = np.linalg.norm(job_vector - user_vec)
+            return 100 - dist
+
+        # 모든 직업에 대해 점수 계산
+        df['Match_Score'] = df.apply(calculate_similarity, axis=1)
+        
+        # 2. 홀란드 코드로 필터링 (옵션)
+        user_type = st.session_state.get('user_holland_code', 'R') # 기본값 R
+        
+        # 추천 1: 가치관이 가장 잘 맞는 직업 (TOP 5)
+        best_match = df.sort_values(by='Match_Score', ascending=False).head(5)
+        
+        # 추천 2: 홀란드 유형이 일치하는 직업 중 가치관 맞는 것
+        holland_match = df[df['Holland_Code'].str.contains(user_type)].sort_values(by='Match_Score', ascending=False).head(5)
+
+        # 결과 출력
+        col_res1, col_res2 = st.columns(2)
+        
+        with col_res1:
+            st.success("🏆 당신의 가치관과 딱 맞는 직업")
+            for idx, row in best_match.iterrows():
+                st.markdown(f"**{row['직업군']}** (일치도: {row['Match_Score']:.1f}%)")
+                st.progress(int(row['Match_Score']))
+        
+        with col_res2:
+            st.info(f"🧩 당신의 적성({user_type}형)을 고려한 추천")
+            if not holland_match.empty:
+                for idx, row in holland_match.iterrows():
+                    st.markdown(f"**{row['직업군']}** (일치도: {row['Match_Score']:.1f}%)")
+                    st.progress(int(row['Match_Score']))
+            else:
+                st.write("해당 유형의 직업 데이터가 부족합니다.")
+                
+        st.markdown("---")
+        st.dataframe(best_match[['직업군', 'Holland_Code', 'Money', 'WLB', 'Stability', 'Match_Score']].set_index('직업군'))
